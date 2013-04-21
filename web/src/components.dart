@@ -17,9 +17,16 @@ class Velocity extends Component {
 
 class Gun extends Component {
   bool canShoot = true, shoot = false;
-  num velX = 0, velY = -0.5;
   num cooldown = 0, maxCooldown = 500;
-  List<List<int>> offset;
-  Gun(this.offset);
+  List<Bullet> bullets;
+  String bulletType = 'bullet';
+  Gun(this.bullets);
 }
 
+class Bullet {
+  num offsetX, offsetY, velocity, angle;
+  Bullet({this.offsetX: 0, this.offsetY: 0, this.velocity: 0.5, this.angle: 0});
+}
+
+class AutoGunner extends Component {}
+class OffScreenRespawner extends Component {}

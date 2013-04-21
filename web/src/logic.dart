@@ -53,41 +53,59 @@ class PlayerBoundarySystem extends VoidEntitySystem {
 class GunSystem extends EntityProcessingSystem {
   ComponentMapper<Gun> gunMapper;
   ComponentMapper<Position> posMapper;
+  ComponentMapper<Velocity> velMapper;
 
-  GunSystem() : super(Aspect.getAspectForAllOf([Position, Gun]));
+  GunSystem() : super(Aspect.getAspectForAllOf([Position, Velocity, Gun]));
 
   initialize() {
     gunMapper = new ComponentMapper<Gun>(Gun, world);
     posMapper = new ComponentMapper<Position>(Position, world);
+    velMapper = new ComponentMapper<Velocity>(Velocity, world);
   }
 
   processEntity(e) {
     var gun = gunMapper.get(e);
-    if (gun.shoot) {
-      var pos = posMapper.get(e);
-      var bullet = world.createEntity();
-      gun.offset.forEach((offset) {
-        var bullet = world.createEntity();
-        bullet.addComponent(new Position(pos.x + offset[0], pos.y + offset[1]));
-        bullet.addComponent(new Velocity(x: gun.velX, y: gun.velY));
-        bullet.addComponent(new Renderable('bullet'));
-        bullet.addToWorld();
-      });
-      gun.cooldown = gun.maxCooldown;
-      gun.canShoot = false;
-    } else if (!gun.canShoot) {
+    if (!gun.canShoot) {
       if (gun.cooldown > 0) {
         gun.cooldown -= world.delta;
       } else {
         gun.canShoot = true;
       }
+    } else if (gun.shoot) {
+      var pos = posMapper.get(e);
+      var vel = velMapper.get(e);
+      gun.bullets.forEach((bullet) {
+        var e = world.createEntity();
+        e.addComponent(new Position(pos.x + bullet.offsetX, pos.y + bullet.offsetY));
+        e.addComponent(new Velocity(x: bullet.velocity * cos(bullet.angle),
+                                    y: vel.y + bullet.velocity * sin(-bullet.angle)));
+        e.addComponent(new Renderable(gun.bulletType));
+        e.addToWorld();
+      });
+      gun.cooldown = gun.maxCooldown;
+      gun.canShoot = false;
     }
   }
 }
 
-class OffScreenMovementSystem extends EntityProcessingSystem {
+class OffScreenDestructionSystem extends EntityProcessingSystem {
   ComponentMapper<Position> posMapper;
-  OffScreenMovementSystem() : super(Aspect.getAspectForAllOf([Position]));
+  OffScreenDestructionSystem() : super(Aspect.getAspectForAllOf([Position]).exclude([OffScreenRespawner]));
+  initialize() {
+    posMapper = new ComponentMapper<Position>(Position, world);
+  }
+
+  processEntity(Entity e) {
+    var pos = posMapper.get(e);
+    if (pos.y > NPE_MAX_Y || pos.y < NPE_MIN_Y) {
+      e.deleteFromWorld();
+    }
+  }
+}
+
+class OffScreenRespawnerSystem extends EntityProcessingSystem {
+  ComponentMapper<Position> posMapper;
+  OffScreenRespawnerSystem() : super(Aspect.getAspectForAllOf([Position, OffScreenRespawner]));
   initialize() {
     posMapper = new ComponentMapper<Position>(Position, world);
   }
@@ -97,8 +115,6 @@ class OffScreenMovementSystem extends EntityProcessingSystem {
     if (pos.y > NPE_MAX_Y) {
       pos.y = NPE_MIN_Y;
       pos.x = random.nextInt(MAX_WIDTH);
-    } else if (pos.y < NPE_MIN_Y) {
-      e.deleteFromWorld();
     }
   }
 }
@@ -109,8 +125,45 @@ class EnemySpawningSystem extends IntervalEntitySystem {
   processEntities(_) {
     var e = world.createEntity();
     e.addComponent(new Position(random.nextInt(MAX_WIDTH), -random.nextInt(-NPE_MIN_Y)));
-    e.addComponent(new Renderable('enemy-${random.nextInt(4)}'));
+    int enemy = random.nextInt(4);
+    e.addComponent(new Renderable('enemy-$enemy'));
+    Gun gun;
+    switch (enemy) {
+      case 0:
+      case 1:
+        gun = new Gun([new Bullet(offsetX: 0, offsetY: 16, angle: PI * 3/2)]);
+        break;
+      case 2:
+        gun = new Gun([new Bullet(angle: PI * 3/2),
+                       new Bullet(angle: PI * 5/4),
+                       new Bullet(angle: PI * 7/4)]);
+        break;
+      case 3:
+        gun = new Gun([new Bullet(angle: PI),
+                       new Bullet(angle: 0)]);
+        break;
+    }
+    gun.maxCooldown = 2000;
+    gun.bulletType = 'enemy-bullet';
+    e.addComponent(gun);
     e.addComponent(new Velocity(y: 0.15));
+    e.addComponent(new AutoGunner());
+    e.addComponent(new OffScreenRespawner());
     e.addToWorld();
+  }
+}
+
+class AutoGunnerSystem extends EntityProcessingSystem {
+  ComponentMapper<Gun> gunMapper;
+
+  AutoGunnerSystem() : super(Aspect.getAspectForAllOf([AutoGunner, Gun]));
+
+  initialize() {
+    gunMapper = new ComponentMapper<Gun>(Gun, world);
+  }
+
+  processEntity(Entity e) {
+    var gun = gunMapper.get(e);
+    gun.shoot = true;
   }
 }
