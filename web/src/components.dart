@@ -17,7 +17,7 @@ class Velocity extends Component {
 
 class Gun extends Component {
   bool canShoot = true, shoot = false;
-  num cooldown = 0, maxCooldown = 500;
+  num cooldown = 0, maxCooldown = 100;
   List<Bullet> bullets;
   String bulletType = 'bullet';
   Gun(this.bullets);
@@ -29,12 +29,10 @@ class Bullet {
 }
 
 class Status extends Component {
-  int hp;
-  Status({this.hp: 10});
-}
-
-class Score extends Component {
-  int score = 0;
+  int hp, maxHp;
+  Status({this.hp: 10}) {
+    maxHp = hp;
+  }
 }
 
 class AutoGunner extends Component {}

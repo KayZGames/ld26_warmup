@@ -24,7 +24,7 @@ class PlayerBoundarySystem extends VoidEntitySystem {
   const MIN_X = 20;
   const MIN_Y = 50;
   const MAX_X = MAX_WIDTH - 20;
-  const MAX_Y = MAX_HEIGHT - 10;
+  const MAX_Y = MAX_HEIGHT - 30;
 
   Position pos;
 
@@ -125,40 +125,47 @@ class OffScreenRespawnerSystem extends EntityProcessingSystem {
 
 class EnemySpawningSystem extends IntervalEntitySystem {
   GroupManager gm;
-  EnemySpawningSystem() : super(5000, Aspect.getEmpty());
+  EnemySpawningSystem() : super(2500, Aspect.getEmpty());
 
   initialize() {
     gm = world.getManager(GroupManager);
   }
 
   processEntities(_) {
+    for (int i = 0; i < 1 + random.nextInt(1 + score~/250); i++) {
+      spawnEnemy();
+    }
+  }
+
+  void spawnEnemy() {
     var e = world.createEntity();
     e.addComponent(new Position(random.nextInt(MAX_WIDTH), -random.nextInt(-NPE_MIN_Y)));
     int enemy = random.nextInt(4);
     e.addComponent(new Renderable('enemy-$enemy'));
+    num bulletV = 0.05 + random.nextDouble() / 20 + score/10000;
     Gun gun;
     switch (enemy) {
       case 0:
       case 1:
-        gun = new Gun([new Bullet(offsetX: 0, offsetY: 16, angle: PI * 3/2)]);
+        gun = new Gun([new Bullet(offsetX: 0, offsetY: 16, angle: PI * 3/2, velocity: bulletV)]);
         break;
       case 2:
-        gun = new Gun([new Bullet(angle: PI * 3/2),
-                       new Bullet(angle: PI * 5/4),
-                       new Bullet(angle: PI * 7/4)]);
+        gun = new Gun([new Bullet(angle: PI * 3/2, velocity: bulletV),
+                       new Bullet(angle: PI * 5/4, velocity: bulletV),
+                       new Bullet(angle: PI * 7/4, velocity: bulletV)]);
         break;
       case 3:
-        gun = new Gun([new Bullet(angle: PI),
-                       new Bullet(angle: 0)]);
+        gun = new Gun([new Bullet(angle: PI, velocity: bulletV),
+                       new Bullet(angle: 0, velocity: bulletV)]);
         break;
     }
-    gun.maxCooldown = 2000;
+    gun.maxCooldown = 1000 + random.nextInt(20000) - score/500;
     gun.bulletType = 'enemy-bullet';
     e.addComponent(gun);
-    e.addComponent(new Velocity(y: 0.15));
+    e.addComponent(new Velocity(y: 0.01 + random.nextDouble() / 10 + score/10000));
     e.addComponent(new AutoGunner());
     e.addComponent(new OffScreenRespawner());
-    e.addComponent(new Status(hp: 3));
+    e.addComponent(new Status(hp: 1 + random.nextInt(4) + score~/500));
     e.addToWorld();
     gm.add(e, GROUP_ENEMY);
   }
@@ -184,14 +191,12 @@ class BulletCollisionSystem extends VoidEntitySystem {
   TagManager tm;
   ComponentMapper<Position> posMapper;
   ComponentMapper<Status> statusMapper;
-  ComponentMapper<Score> scoreMapper;
 
   initialize() {
     gm = world.getManager(GroupManager);
     tm = world.getManager(TagManager);
     posMapper = new ComponentMapper<Position>(Position, world);
     statusMapper = new ComponentMapper<Status>(Status, world);
-    scoreMapper = new ComponentMapper<Score>(Score, world);
   }
 
   processSystem() {
@@ -200,7 +205,7 @@ class BulletCollisionSystem extends VoidEntitySystem {
     var enemies = gm.getEntities(GROUP_ENEMY);
     var player = tm.getEntity(TAG_PLAYER);
     enemies.forEach((enemy) {
-      checkCollision(enemy, playerBullets, 3, scoreMapper.get(player));
+      checkCollision(enemy, playerBullets, 3, addScore: true);
     });
     if (null != player) {
       checkCollision(player, enemyBullets, 3);
@@ -208,27 +213,50 @@ class BulletCollisionSystem extends VoidEntitySystem {
     }
   }
 
-  void checkCollision(Entity e, ReadOnlyBag<Entity> collidables, int radius, [Score score]) {
+  void checkCollision(Entity e, ReadOnlyBag<Entity> collidables, int radius, {bool addScore: false}) {
     var pos = posMapper.get(e);
     collidables.forEach((collider) {
       var colliderPos = posMapper.get(collider);
       if (Utils.doCirclesCollide(pos.x, pos.y, 16, colliderPos.x, colliderPos.y, radius)) {
-        handleCollision(e, score);
-        handleCollision(collider);
+        handleCollision(e, addScore);
+        handleCollision(collider, false);
       }
     });
   }
 
-  void handleCollision(Entity e, [Score score]) {
+  void handleCollision(Entity e, bool addScore) {
     var status = statusMapper.get(e);
     status.hp -= 1;
     if (status.hp == 0) {
       e.deleteFromWorld();
-      if (null != score) {
-        score.score += 4;
+      if (addScore) {
+        score += 4;
       }
-    } else if (null != score) {
-      score.score += 1;
+    } else if (addScore) {
+      score += 1;
     }
   }
+}
+
+class RepairSystem extends IntervalEntitySystem {
+  TagManager tm;
+  ComponentMapper<Status> statusMapper;
+
+  RepairSystem() : super(5000, Aspect.getEmpty());
+
+  initialize() {
+    tm = world.getManager(TagManager);
+    statusMapper = new ComponentMapper<Status>(Status, world);
+  }
+
+  processEntities(_) {
+    var player = tm.getEntity(TAG_PLAYER);
+    if (null != player) {
+      var status = statusMapper.get(player);
+      if (status.hp < status.maxHp) {
+          status.hp += 1;
+      }
+    }
+  }
+
 }

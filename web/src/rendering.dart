@@ -27,7 +27,6 @@ class RenderingSystem extends EntityProcessingSystem {
 class HudRenderSystem extends VoidEntitySystem {
   TagManager tm;
   ComponentMapper<Status> statusMapper;
-  ComponentMapper<Score> scoreMapper;
   CqWrapper gameWrapper;
 
   HudRenderSystem(this.gameWrapper);
@@ -35,19 +34,19 @@ class HudRenderSystem extends VoidEntitySystem {
   initialize() {
     tm = world.getManager(TagManager);
     statusMapper = new ComponentMapper<Status>(Status, world);
-    scoreMapper = new ComponentMapper<Score>(Score, world);
   }
 
   processSystem() {
     var player = tm.getEntity(TAG_PLAYER);
-    var status = statusMapper.get(player);
-    var score = scoreMapper.get(player);
     gameWrapper..fillStyle = '#140c1c'
-               ..font = '18px Verdana'
-               ..fillText('Score: ${score.score}', 10, MAX_HEIGHT - 25)
-               ..fillRect(MAX_WIDTH / 4, MAX_HEIGHT - 20, MAX_WIDTH / 2, 20)
-               ..fillStyle = '#6daa2c'
-               ..fillRect(MAX_WIDTH / 4 + 2, MAX_HEIGHT - 18, (MAX_WIDTH / 2 - 4) * status.hp / 10, 16);
+              ..font = '18px Verdana'
+              ..fillText('Score: $score', 10, MAX_HEIGHT - 25)
+              ..fillRect(MAX_WIDTH / 4, MAX_HEIGHT - 20, MAX_WIDTH / 2, 20);
+    if (null != player) {
+      var status = statusMapper.get(player);
+      gameWrapper..fillStyle = '#6daa2c'
+                 ..fillRect(MAX_WIDTH / 4 + 2, MAX_HEIGHT - 18, (MAX_WIDTH / 2 - 4) * status.hp / status.maxHp, 16);
+    }
   }
 
   begin() {

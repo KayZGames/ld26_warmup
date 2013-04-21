@@ -28,6 +28,7 @@ const GROUP_PLAYER_BULLET = 'bullet';
 
 var images = new Map<String, ImageElement>();
 var random = new Random();
+int score = 0;
 
 void main() {
   window.setImmediate(() {
@@ -70,12 +71,12 @@ class Game {
     e.addComponent(new Velocity());
     e.addComponent(new Gun([new Bullet(offsetX: -3, offsetY: -16, angle: PI/2),
                             new Bullet(offsetX: 3, offsetY: -16, angle: PI/2)]));
-    e.addComponent(new Status(hp: 10));
-    e.addComponent(new Score());
+    e.addComponent(new Status(hp: 20));
     e.addToWorld();
     tm.register(e, TAG_PLAYER);
 
 
+    world.addSystem(new RepairSystem());
     world.addSystem(new PlayerControlSystem());
     world.addSystem(new MovementSystem());
     world.addSystem(new PlayerBoundarySystem());
