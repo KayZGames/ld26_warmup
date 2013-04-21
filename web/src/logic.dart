@@ -49,3 +49,38 @@ class PlayerBoundarySystem extends VoidEntitySystem {
     }
   }
 }
+
+class GunSystem extends EntityProcessingSystem {
+  ComponentMapper<Gun> gunMapper;
+  ComponentMapper<Position> posMapper;
+
+  GunSystem() : super(Aspect.getAspectForAllOf([Position, Gun]));
+
+  initialize() {
+    gunMapper = new ComponentMapper<Gun>(Gun, world);
+    posMapper = new ComponentMapper<Position>(Position, world);
+  }
+
+  processEntity(e) {
+    var gun = gunMapper.get(e);
+    if (gun.shoot) {
+      var pos = posMapper.get(e);
+      var bullet = world.createEntity();
+      gun.offset.forEach((offset) {
+        var bullet = world.createEntity();
+        bullet.addComponent(new Position(pos.x + offset[0], pos.y + offset[1]));
+        bullet.addComponent(new Velocity(x: gun.velX, y: gun.velY));
+        bullet.addComponent(new Renderable('bullet'));
+        bullet.addToWorld();
+      });
+      gun.cooldown = gun.maxCooldown;
+      gun.canShoot = false;
+    } else if (!gun.canShoot) {
+      if (gun.cooldown > 0) {
+        gun.cooldown -= world.delta;
+      } else {
+        gun.canShoot = true;
+      }
+    }
+  }
+}

@@ -11,11 +11,14 @@ class RenderingSystem extends EntityProcessingSystem {
     renderMapper = new ComponentMapper<Renderable>(Renderable, world);
   }
 
+  begin() {
+    gameWrapper.clear();
+  }
+
   processEntity(e) {
     var pos = posMapper.get(e);
     var renderable = renderMapper.get(e);
 
-    gameWrapper.clear();
     var img = images[renderable.name];
     gameWrapper.drawImage(img, pos.x - img.width ~/ 2, pos.y - img.height ~/ 2);
   }
