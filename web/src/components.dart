@@ -33,5 +33,9 @@ class Status extends Component {
   Status({this.hp: 10});
 }
 
+class Score extends Component {
+  int score = 0;
+}
+
 class AutoGunner extends Component {}
 class OffScreenRespawner extends Component {}

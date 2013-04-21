@@ -184,12 +184,14 @@ class BulletCollisionSystem extends VoidEntitySystem {
   TagManager tm;
   ComponentMapper<Position> posMapper;
   ComponentMapper<Status> statusMapper;
+  ComponentMapper<Score> scoreMapper;
 
   initialize() {
     gm = world.getManager(GroupManager);
     tm = world.getManager(TagManager);
-    posMapper = new ComponentMapper(Position, world);
-    statusMapper = new ComponentMapper(Status, world);
+    posMapper = new ComponentMapper<Position>(Position, world);
+    statusMapper = new ComponentMapper<Status>(Status, world);
+    scoreMapper = new ComponentMapper<Score>(Score, world);
   }
 
   processSystem() {
@@ -198,7 +200,7 @@ class BulletCollisionSystem extends VoidEntitySystem {
     var enemies = gm.getEntities(GROUP_ENEMY);
     var player = tm.getEntity(TAG_PLAYER);
     enemies.forEach((enemy) {
-      checkCollision(enemy, playerBullets, 3);
+      checkCollision(enemy, playerBullets, 3, scoreMapper.get(player));
     });
     if (null != player) {
       checkCollision(player, enemyBullets, 3);
@@ -206,22 +208,27 @@ class BulletCollisionSystem extends VoidEntitySystem {
     }
   }
 
-  void checkCollision(Entity e, ReadOnlyBag<Entity> collidables, int radius) {
+  void checkCollision(Entity e, ReadOnlyBag<Entity> collidables, int radius, [Score score]) {
     var pos = posMapper.get(e);
     collidables.forEach((collider) {
       var colliderPos = posMapper.get(collider);
       if (Utils.doCirclesCollide(pos.x, pos.y, 16, colliderPos.x, colliderPos.y, radius)) {
-        handleCollision(e);
+        handleCollision(e, score);
         handleCollision(collider);
       }
     });
   }
 
-  void handleCollision(Entity e) {
+  void handleCollision(Entity e, [Score score]) {
     var status = statusMapper.get(e);
     status.hp -= 1;
     if (status.hp == 0) {
       e.deleteFromWorld();
+      if (null != score) {
+        score.score += 4;
+      }
+    } else if (null != score) {
+      score.score += 1;
     }
   }
 }

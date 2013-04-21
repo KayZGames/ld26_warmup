@@ -33,7 +33,8 @@ void main() {
   window.setImmediate(() {
     var gameWrapper = cq('#game');
     gameWrapper.canvas..width = MAX_WIDTH
-               ..height = MAX_HEIGHT;
+                      ..height = MAX_HEIGHT;
+    gameWrapper.textBaseline = 'top';
     var imageNames = ['player', 'bullet',
                       'tree-0', 'tree-1', 'tree-2', 'tree-3',
                       'enemy-0', 'enemy-1', 'enemy-2', 'enemy-3', 'enemy-bullet'];
@@ -70,6 +71,7 @@ class Game {
     e.addComponent(new Gun([new Bullet(offsetX: -3, offsetY: -16, angle: PI/2),
                             new Bullet(offsetX: 3, offsetY: -16, angle: PI/2)]));
     e.addComponent(new Status(hp: 10));
+    e.addComponent(new Score());
     e.addToWorld();
     tm.register(e, TAG_PLAYER);
 
