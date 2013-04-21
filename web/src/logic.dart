@@ -54,6 +54,7 @@ class GunSystem extends EntityProcessingSystem {
   ComponentMapper<Gun> gunMapper;
   ComponentMapper<Position> posMapper;
   ComponentMapper<Velocity> velMapper;
+  GroupManager gm;
 
   GunSystem() : super(Aspect.getAspectForAllOf([Position, Velocity, Gun]));
 
@@ -61,6 +62,7 @@ class GunSystem extends EntityProcessingSystem {
     gunMapper = new ComponentMapper<Gun>(Gun, world);
     posMapper = new ComponentMapper<Position>(Position, world);
     velMapper = new ComponentMapper<Velocity>(Velocity, world);
+    gm = world.getManager(GroupManager);
   }
 
   processEntity(e) {
@@ -80,7 +82,9 @@ class GunSystem extends EntityProcessingSystem {
         e.addComponent(new Velocity(x: bullet.velocity * cos(bullet.angle),
                                     y: vel.y + bullet.velocity * sin(-bullet.angle)));
         e.addComponent(new Renderable(gun.bulletType));
+        e.addComponent(new Status(hp: 1));
         e.addToWorld();
+        gm.add(e, gun.bulletType);
       });
       gun.cooldown = gun.maxCooldown;
       gun.canShoot = false;
@@ -120,7 +124,12 @@ class OffScreenRespawnerSystem extends EntityProcessingSystem {
 }
 
 class EnemySpawningSystem extends IntervalEntitySystem {
+  GroupManager gm;
   EnemySpawningSystem() : super(5000, Aspect.getEmpty());
+
+  initialize() {
+    gm = world.getManager(GroupManager);
+  }
 
   processEntities(_) {
     var e = world.createEntity();
@@ -149,7 +158,9 @@ class EnemySpawningSystem extends IntervalEntitySystem {
     e.addComponent(new Velocity(y: 0.15));
     e.addComponent(new AutoGunner());
     e.addComponent(new OffScreenRespawner());
+    e.addComponent(new Status(hp: 3));
     e.addToWorld();
+    gm.add(e, GROUP_ENEMY);
   }
 }
 
@@ -165,5 +176,52 @@ class AutoGunnerSystem extends EntityProcessingSystem {
   processEntity(Entity e) {
     var gun = gunMapper.get(e);
     gun.shoot = true;
+  }
+}
+
+class BulletCollisionSystem extends VoidEntitySystem {
+  GroupManager gm;
+  TagManager tm;
+  ComponentMapper<Position> posMapper;
+  ComponentMapper<Status> statusMapper;
+
+  initialize() {
+    gm = world.getManager(GroupManager);
+    tm = world.getManager(TagManager);
+    posMapper = new ComponentMapper(Position, world);
+    statusMapper = new ComponentMapper(Status, world);
+  }
+
+  processSystem() {
+    var playerBullets = gm.getEntities(GROUP_PLAYER_BULLET);
+    var enemyBullets = gm.getEntities(GROUP_ENEMY_BULLET);
+    var enemies = gm.getEntities(GROUP_ENEMY);
+    var player = tm.getEntity(TAG_PLAYER);
+    enemies.forEach((enemy) {
+      checkCollision(enemy, playerBullets, 3);
+    });
+    if (null != player) {
+      checkCollision(player, enemyBullets, 3);
+      checkCollision(player, enemies, 16);
+    }
+  }
+
+  void checkCollision(Entity e, ReadOnlyBag<Entity> collidables, int radius) {
+    var pos = posMapper.get(e);
+    collidables.forEach((collider) {
+      var colliderPos = posMapper.get(collider);
+      if (Utils.doCirclesCollide(pos.x, pos.y, 16, colliderPos.x, colliderPos.y, radius)) {
+        handleCollision(e);
+        handleCollision(collider);
+      }
+    });
+  }
+
+  void handleCollision(Entity e) {
+    var status = statusMapper.get(e);
+    status.hp -= 1;
+    if (status.hp == 0) {
+      e.deleteFromWorld();
+    }
   }
 }

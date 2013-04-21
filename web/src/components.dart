@@ -28,5 +28,10 @@ class Bullet {
   Bullet({this.offsetX: 0, this.offsetY: 0, this.velocity: 0.5, this.angle: 0});
 }
 
+class Status extends Component {
+  int hp;
+  Status({this.hp: 10});
+}
+
 class AutoGunner extends Component {}
 class OffScreenRespawner extends Component {}

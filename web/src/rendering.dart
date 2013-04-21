@@ -23,3 +23,31 @@ class RenderingSystem extends EntityProcessingSystem {
     gameWrapper.drawImage(img, pos.x - img.width ~/ 2, pos.y - img.height ~/ 2);
   }
 }
+
+class HudRenderSystem extends VoidEntitySystem {
+  Status status;
+  CqWrapper gameWrapper;
+
+  HudRenderSystem(this.gameWrapper);
+
+  initialize() {
+    TagManager tm = world.getManager(TagManager);
+    var player = tm.getEntity(TAG_PLAYER);
+    status = player.getComponentByClass(Status);
+  }
+
+  processSystem() {
+    gameWrapper..fillStyle = '#140c1c'
+               ..fillRect(MAX_WIDTH / 4, MAX_HEIGHT - 20, MAX_WIDTH / 2, 20)
+               ..fillStyle = '#6daa2c'
+               ..fillRect(MAX_WIDTH / 4 + 2, MAX_HEIGHT - 18, (MAX_WIDTH / 2 - 4) * status.hp / 10, 16);
+  }
+
+  begin() {
+    gameWrapper.save();
+  }
+
+  end() {
+    gameWrapper.restore();
+  }
+}

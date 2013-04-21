@@ -22,6 +22,9 @@ const NPE_MAX_WIDTH = NPE_MAX_X - NPE_MIN_X;
 const NPE_MAX_HEIGHT = NPE_MAX_Y - NPE_MIN_Y;
 
 const TAG_PLAYER = 'player';
+const GROUP_ENEMY = 'enemy';
+const GROUP_ENEMY_BULLET = 'enemy-bullet';
+const GROUP_PLAYER_BULLET = 'bullet';
 
 var images = new Map<String, ImageElement>();
 var random = new Random();
@@ -54,7 +57,9 @@ class Game {
 
   void start(CqWrapper gameWrapper) {
     var tm = new TagManager();
+    var gm = new GroupManager();
     world.addManager(tm);
+    world.addManager(gm);
 
     createBackground();
 
@@ -64,6 +69,7 @@ class Game {
     e.addComponent(new Velocity());
     e.addComponent(new Gun([new Bullet(offsetX: -3, offsetY: -16, angle: PI/2),
                             new Bullet(offsetX: 3, offsetY: -16, angle: PI/2)]));
+    e.addComponent(new Status(hp: 10));
     e.addToWorld();
     tm.register(e, TAG_PLAYER);
 
@@ -73,9 +79,11 @@ class Game {
     world.addSystem(new PlayerBoundarySystem());
     world.addSystem(new AutoGunnerSystem());
     world.addSystem(new GunSystem());
+    world.addSystem(new BulletCollisionSystem());
     world.addSystem(new OffScreenDestructionSystem());
     world.addSystem(new OffScreenRespawnerSystem());
     world.addSystem(new RenderingSystem(gameWrapper));
+    world.addSystem(new HudRenderSystem(gameWrapper));
     world.addSystem(new EnemySpawningSystem());
 
     world.initialize();
