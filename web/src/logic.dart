@@ -92,12 +92,25 @@ class OffScreenMovementSystem extends EntityProcessingSystem {
     posMapper = new ComponentMapper<Position>(Position, world);
   }
 
-  processEntity(e) {
+  processEntity(Entity e) {
     var pos = posMapper.get(e);
     if (pos.y > NPE_MAX_Y) {
       pos.y = NPE_MIN_Y;
       pos.x = random.nextInt(MAX_WIDTH);
+    } else if (pos.y < NPE_MIN_Y) {
+      e.deleteFromWorld();
     }
   }
+}
 
+class EnemySpawningSystem extends IntervalEntitySystem {
+  EnemySpawningSystem() : super(5000, Aspect.getEmpty());
+
+  processEntities(_) {
+    var e = world.createEntity();
+    e.addComponent(new Position(random.nextInt(MAX_WIDTH), -random.nextInt(-NPE_MIN_Y)));
+    e.addComponent(new Renderable('enemy-${random.nextInt(4)}'));
+    e.addComponent(new Velocity(y: 0.15));
+    e.addToWorld();
+  }
 }

@@ -31,7 +31,9 @@ void main() {
     var gameWrapper = cq('#game');
     gameWrapper.canvas..width = MAX_WIDTH
                ..height = MAX_HEIGHT;
-    var imageNames = ['player', 'bullet', 'tree-0', 'tree-1', 'tree-2', 'tree-3'];
+    var imageNames = ['player', 'bullet',
+                      'tree-0', 'tree-1', 'tree-2', 'tree-3',
+                      'enemy-0', 'enemy-1', 'enemy-2', 'enemy-3'];
     var imageLoader = new List<Future>();
     imageNames.forEach((imageName) {
       var img = new ImageElement();
@@ -57,7 +59,7 @@ class Game {
     createBackground();
 
     var e = world.createEntity();
-    e.addComponent(new Position(MAX_WIDTH ~/ 2, MAX_HEIGHT ~/2));
+    e.addComponent(new Position(MAX_WIDTH ~/ 2, MAX_HEIGHT * 7/8));
     e.addComponent(new Renderable('player'));
     e.addComponent(new Velocity());
     e.addComponent(new Gun([[-3, -16], [3, -16]]));
@@ -71,6 +73,7 @@ class Game {
     world.addSystem(new GunSystem());
     world.addSystem(new OffScreenMovementSystem());
     world.addSystem(new RenderingSystem(gameWrapper));
+    world.addSystem(new EnemySpawningSystem());
 
     world.initialize();
 
@@ -85,7 +88,7 @@ class Game {
       var e = world.createEntity();
       e.addComponent(new Position(random.nextInt(MAX_WIDTH), NPE_MIN_Y + random.nextInt(NPE_MAX_HEIGHT)));
       e.addComponent(new Renderable('tree-${random.nextInt(4)}'));
-      e.addComponent(new Velocity(y: 0.1));
+      e.addComponent(new Velocity(y: 0.08));
       e.addToWorld();
     }
   }
