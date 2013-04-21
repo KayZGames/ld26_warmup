@@ -2,6 +2,8 @@ library ld26_warmup;
 
 import 'dart:async';
 import 'dart:html';
+import 'dart:math';
+
 import 'package:dartemis/dartemis.dart';
 import 'package:canvas_query/canvas_query.dart';
 
@@ -12,17 +14,24 @@ part 'src/logic.dart';
 
 const MAX_WIDTH = 500;
 const MAX_HEIGHT = 600;
+const NPE_MIN_X = -MAX_WIDTH ~/ 2;
+const NPE_MIN_Y = -MAX_HEIGHT ~/ 2;
+const NPE_MAX_X = MAX_WIDTH - NPE_MIN_X;
+const NPE_MAX_Y = MAX_HEIGHT - NPE_MIN_Y;
+const NPE_MAX_WIDTH = NPE_MAX_X - NPE_MIN_X;
+const NPE_MAX_HEIGHT = NPE_MAX_Y - NPE_MIN_Y;
 
 const TAG_PLAYER = 'player';
 
 var images = new Map<String, ImageElement>();
+var random = new Random();
 
 void main() {
   window.setImmediate(() {
     var gameWrapper = cq('#game');
     gameWrapper.canvas..width = MAX_WIDTH
                ..height = MAX_HEIGHT;
-    var imageNames = ['player', 'bullet'];
+    var imageNames = ['player', 'bullet', 'tree-0', 'tree-1', 'tree-2', 'tree-3'];
     var imageLoader = new List<Future>();
     imageNames.forEach((imageName) {
       var img = new ImageElement();
@@ -45,6 +54,8 @@ class Game {
     var tm = new TagManager();
     world.addManager(tm);
 
+    createBackground();
+
     var e = world.createEntity();
     e.addComponent(new Position(MAX_WIDTH ~/ 2, MAX_HEIGHT ~/2));
     e.addComponent(new Renderable('player'));
@@ -53,10 +64,12 @@ class Game {
     e.addToWorld();
     tm.register(e, TAG_PLAYER);
 
+
     world.addSystem(new PlayerControlSystem());
     world.addSystem(new MovementSystem());
     world.addSystem(new PlayerBoundarySystem());
     world.addSystem(new GunSystem());
+    world.addSystem(new OffScreenMovementSystem());
     world.addSystem(new RenderingSystem(gameWrapper));
 
     world.initialize();
@@ -65,6 +78,16 @@ class Game {
       lastTime = time;
       window.animationFrame.then(gameLoop);
     });
+  }
+
+  createBackground() {
+    for (int i = 0; i < 40; i++) {
+      var e = world.createEntity();
+      e.addComponent(new Position(random.nextInt(MAX_WIDTH), NPE_MIN_Y + random.nextInt(NPE_MAX_HEIGHT)));
+      e.addComponent(new Renderable('tree-${random.nextInt(4)}'));
+      e.addComponent(new Velocity(y: 0.1));
+      e.addToWorld();
+    }
   }
 
   void gameLoop(num time) {

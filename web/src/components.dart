@@ -11,8 +11,8 @@ class Renderable extends Component {
 }
 
 class Velocity extends Component {
-  num x = 0, y = 0;
-  Velocity({this.x, this.y});
+  num x, y;
+  Velocity({this.x : 0, this.y : 0});
 }
 
 class Gun extends Component {
@@ -22,3 +22,4 @@ class Gun extends Component {
   List<List<int>> offset;
   Gun(this.offset);
 }
+

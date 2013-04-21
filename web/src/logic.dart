@@ -84,3 +84,20 @@ class GunSystem extends EntityProcessingSystem {
     }
   }
 }
+
+class OffScreenMovementSystem extends EntityProcessingSystem {
+  ComponentMapper<Position> posMapper;
+  OffScreenMovementSystem() : super(Aspect.getAspectForAllOf([Position]));
+  initialize() {
+    posMapper = new ComponentMapper<Position>(Position, world);
+  }
+
+  processEntity(e) {
+    var pos = posMapper.get(e);
+    if (pos.y > NPE_MAX_Y) {
+      pos.y = NPE_MIN_Y;
+      pos.x = random.nextInt(MAX_WIDTH);
+    }
+  }
+
+}

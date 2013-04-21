@@ -12,7 +12,7 @@ class RenderingSystem extends EntityProcessingSystem {
   }
 
   begin() {
-    gameWrapper.clear();
+    gameWrapper.clear(color: 'green');
   }
 
   processEntity(e) {
