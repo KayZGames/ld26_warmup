@@ -12,12 +12,14 @@ class Renderable extends Component {
 
 class Velocity extends Component {
   num x, y;
-  Velocity({this.x : 0, this.y : 0});
+  Velocity({this.x: 0, this.y: 0});
 }
 
 class Gun extends Component {
-  bool canShoot = true, shoot = false;
-  num cooldown = 0, maxCooldown = 100;
+  bool canShoot = true,
+      shoot = false;
+  num cooldown = 0,
+      maxCooldown = 100;
   List<Bullet> bullets;
   String bulletType = 'bullet';
   Gun(this.bullets);

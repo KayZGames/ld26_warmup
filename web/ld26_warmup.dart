@@ -5,7 +5,6 @@ import 'dart:html';
 import 'dart:math';
 
 import 'package:dartemis/dartemis.dart';
-import 'package:canvas_query/canvas_query.dart';
 
 part 'src/components.dart';
 part 'src/rendering.dart';
@@ -31,25 +30,34 @@ var random = new Random();
 int score = 0;
 
 void main() {
-  window.setImmediate(() {
-    var gameWrapper = cq('#game');
-    gameWrapper.canvas..width = MAX_WIDTH
-                      ..height = MAX_HEIGHT;
-    gameWrapper.textBaseline = 'top';
-    var imageNames = ['player', 'bullet',
-                      'tree-0', 'tree-1', 'tree-2', 'tree-3',
-                      'enemy-0', 'enemy-1', 'enemy-2', 'enemy-3', 'enemy-bullet'];
-    var imageLoader = new List<Future>();
-    imageNames.forEach((imageName) {
-      var img = new ImageElement();
-      images[imageName] = img;
-      img.src = 'res/$imageName.png';
-      imageLoader.add(img.onLoad.first);
-    });
+  var gameWrapper = querySelector('#game') as CanvasElement;
+  gameWrapper
+    ..width = MAX_WIDTH
+    ..height = MAX_HEIGHT;
+  gameWrapper.context2D.textBaseline = 'top';
+  var imageNames = [
+    'player',
+    'bullet',
+    'tree-0',
+    'tree-1',
+    'tree-2',
+    'tree-3',
+    'enemy-0',
+    'enemy-1',
+    'enemy-2',
+    'enemy-3',
+    'enemy-bullet'
+  ];
+  var imageLoader = new List<Future>();
+  imageNames.forEach((imageName) {
+    var img = new ImageElement();
+    images[imageName] = img;
+    img.src = 'res/$imageName.png';
+    imageLoader.add(img.onLoad.first);
+  });
 
-    Future.wait(imageLoader).then((_) {
-      new Game().start(gameWrapper);
-    });
+  Future.wait(imageLoader).then((_) {
+    new Game().start(gameWrapper);
   });
 }
 
@@ -57,7 +65,7 @@ class Game {
   var world = new World();
   var lastTime;
 
-  void start(CqWrapper gameWrapper) {
+  void start(CanvasElement gameWrapper) {
     var tm = new TagManager();
     var gm = new GroupManager();
     world.addManager(tm);
@@ -66,15 +74,16 @@ class Game {
     createBackground();
 
     var e = world.createEntity();
-    e.addComponent(new Position(MAX_WIDTH ~/ 2, MAX_HEIGHT * 7/8));
+    e.addComponent(new Position(MAX_WIDTH ~/ 2, MAX_HEIGHT * 7 / 8));
     e.addComponent(new Renderable('player'));
     e.addComponent(new Velocity());
-    e.addComponent(new Gun([new Bullet(offsetX: -3, offsetY: -16, angle: PI/2),
-                            new Bullet(offsetX: 3, offsetY: -16, angle: PI/2)]));
+    e.addComponent(new Gun([
+      new Bullet(offsetX: -3, offsetY: -16, angle: PI / 2),
+      new Bullet(offsetX: 3, offsetY: -16, angle: PI / 2)
+    ]));
     e.addComponent(new Status(hp: 20));
     e.addToWorld();
     tm.register(e, TAG_PLAYER);
-
 
     world.addSystem(new RepairSystem());
     world.addSystem(new PlayerControlSystem());
@@ -85,8 +94,8 @@ class Game {
     world.addSystem(new BulletCollisionSystem());
     world.addSystem(new OffScreenDestructionSystem());
     world.addSystem(new OffScreenRespawnerSystem());
-    world.addSystem(new RenderingSystem(gameWrapper));
-    world.addSystem(new HudRenderSystem(gameWrapper));
+    world.addSystem(new RenderingSystem(gameWrapper.context2D));
+    world.addSystem(new HudRenderSystem(gameWrapper.context2D));
     world.addSystem(new EnemySpawningSystem());
 
     world.initialize();
@@ -100,7 +109,8 @@ class Game {
   createBackground() {
     for (int i = 0; i < 40; i++) {
       var e = world.createEntity();
-      e.addComponent(new Position(random.nextInt(MAX_WIDTH), NPE_MIN_Y + random.nextInt(NPE_MAX_HEIGHT)));
+      e.addComponent(new Position(random.nextInt(MAX_WIDTH),
+          NPE_MIN_Y + random.nextInt(NPE_MAX_HEIGHT)));
       e.addComponent(new Renderable('tree-${random.nextInt(4)}'));
       e.addComponent(new Velocity(y: 0.08));
       e.addComponent(new OffScreenRespawner());
@@ -115,5 +125,3 @@ class Game {
     window.animationFrame.then(gameLoop);
   }
 }
-
-

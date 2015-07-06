@@ -1,19 +1,19 @@
 part of ld26_warmup;
 
 class MovementSystem extends EntityProcessingSystem {
-  ComponentMapper<Position> posMapper;
-  ComponentMapper<Velocity> velocityMapper;
+  Mapper<Position> posMapper;
+  Mapper<Velocity> velocityMapper;
 
   MovementSystem() : super(Aspect.getAspectForAllOf([Position, Velocity]));
 
   initialize() {
-    posMapper = new ComponentMapper<Position>(Position, world);
-    velocityMapper = new ComponentMapper<Velocity>(Velocity, world);
+    posMapper = new Mapper<Position>(Position, world);
+    velocityMapper = new Mapper<Velocity>(Velocity, world);
   }
 
   processEntity(e) {
-    var pos = posMapper.get(e);
-    var velocity = velocityMapper.get(e);
+    var pos = posMapper[e];
+    var velocity = velocityMapper[e];
 
     pos.x += velocity.x * world.delta;
     pos.y += velocity.y * world.delta;
@@ -21,10 +21,10 @@ class MovementSystem extends EntityProcessingSystem {
 }
 
 class PlayerBoundarySystem extends VoidEntitySystem {
-  const MIN_X = 20;
-  const MIN_Y = 50;
-  const MAX_X = MAX_WIDTH - 20;
-  const MAX_Y = MAX_HEIGHT - 30;
+  static const MIN_X = 20;
+  static const MIN_Y = 50;
+  static const MAX_X = MAX_WIDTH - 20;
+  static const MAX_Y = MAX_HEIGHT - 30;
 
   Position pos;
 
@@ -51,22 +51,22 @@ class PlayerBoundarySystem extends VoidEntitySystem {
 }
 
 class GunSystem extends EntityProcessingSystem {
-  ComponentMapper<Gun> gunMapper;
-  ComponentMapper<Position> posMapper;
-  ComponentMapper<Velocity> velMapper;
+  Mapper<Gun> gunMapper;
+  Mapper<Position> posMapper;
+  Mapper<Velocity> velMapper;
   GroupManager gm;
 
   GunSystem() : super(Aspect.getAspectForAllOf([Position, Velocity, Gun]));
 
   initialize() {
-    gunMapper = new ComponentMapper<Gun>(Gun, world);
-    posMapper = new ComponentMapper<Position>(Position, world);
-    velMapper = new ComponentMapper<Velocity>(Velocity, world);
+    gunMapper = new Mapper<Gun>(Gun, world);
+    posMapper = new Mapper<Position>(Position, world);
+    velMapper = new Mapper<Velocity>(Velocity, world);
     gm = world.getManager(GroupManager);
   }
 
   processEntity(e) {
-    var gun = gunMapper.get(e);
+    var gun = gunMapper[e];
     if (!gun.canShoot) {
       if (gun.cooldown > 0) {
         gun.cooldown -= world.delta;
@@ -74,8 +74,8 @@ class GunSystem extends EntityProcessingSystem {
         gun.canShoot = true;
       }
     } else if (gun.shoot) {
-      var pos = posMapper.get(e);
-      var vel = velMapper.get(e);
+      var pos = posMapper[e];
+      var vel = velMapper[e];
       gun.bullets.forEach((bullet) {
         var e = world.createEntity();
         e.addComponent(new Position(pos.x + bullet.offsetX, pos.y + bullet.offsetY));
@@ -93,14 +93,14 @@ class GunSystem extends EntityProcessingSystem {
 }
 
 class OffScreenDestructionSystem extends EntityProcessingSystem {
-  ComponentMapper<Position> posMapper;
+  Mapper<Position> posMapper;
   OffScreenDestructionSystem() : super(Aspect.getAspectForAllOf([Position]).exclude([OffScreenRespawner]));
   initialize() {
-    posMapper = new ComponentMapper<Position>(Position, world);
+    posMapper = new Mapper<Position>(Position, world);
   }
 
   processEntity(Entity e) {
-    var pos = posMapper.get(e);
+    var pos = posMapper[e];
     if (pos.y > NPE_MAX_Y || pos.y < NPE_MIN_Y) {
       e.deleteFromWorld();
     }
@@ -108,14 +108,14 @@ class OffScreenDestructionSystem extends EntityProcessingSystem {
 }
 
 class OffScreenRespawnerSystem extends EntityProcessingSystem {
-  ComponentMapper<Position> posMapper;
+  Mapper<Position> posMapper;
   OffScreenRespawnerSystem() : super(Aspect.getAspectForAllOf([Position, OffScreenRespawner]));
   initialize() {
-    posMapper = new ComponentMapper<Position>(Position, world);
+    posMapper = new Mapper<Position>(Position, world);
   }
 
   processEntity(Entity e) {
-    var pos = posMapper.get(e);
+    var pos = posMapper[e];
     if (pos.y > NPE_MAX_Y) {
       pos.y = NPE_MIN_Y;
       pos.x = random.nextInt(MAX_WIDTH);
@@ -172,16 +172,16 @@ class EnemySpawningSystem extends IntervalEntitySystem {
 }
 
 class AutoGunnerSystem extends EntityProcessingSystem {
-  ComponentMapper<Gun> gunMapper;
+  Mapper<Gun> gunMapper;
 
   AutoGunnerSystem() : super(Aspect.getAspectForAllOf([AutoGunner, Gun]));
 
   initialize() {
-    gunMapper = new ComponentMapper<Gun>(Gun, world);
+    gunMapper = new Mapper<Gun>(Gun, world);
   }
 
   processEntity(Entity e) {
-    var gun = gunMapper.get(e);
+    var gun = gunMapper[e];
     gun.shoot = true;
   }
 }
@@ -189,14 +189,14 @@ class AutoGunnerSystem extends EntityProcessingSystem {
 class BulletCollisionSystem extends VoidEntitySystem {
   GroupManager gm;
   TagManager tm;
-  ComponentMapper<Position> posMapper;
-  ComponentMapper<Status> statusMapper;
+  Mapper<Position> posMapper;
+  Mapper<Status> statusMapper;
 
   initialize() {
     gm = world.getManager(GroupManager);
     tm = world.getManager(TagManager);
-    posMapper = new ComponentMapper<Position>(Position, world);
-    statusMapper = new ComponentMapper<Status>(Status, world);
+    posMapper = new Mapper<Position>(Position, world);
+    statusMapper = new Mapper<Status>(Status, world);
   }
 
   processSystem() {
@@ -213,19 +213,27 @@ class BulletCollisionSystem extends VoidEntitySystem {
     }
   }
 
-  void checkCollision(Entity e, ReadOnlyBag<Entity> collidables, int radius, {bool addScore: false}) {
-    var pos = posMapper.get(e);
+  void checkCollision(Entity e, Iterable<Entity> collidables, int radius, {bool addScore: false}) {
+    var pos = posMapper[e];
     collidables.forEach((collider) {
-      var colliderPos = posMapper.get(collider);
-      if (Utils.doCirclesCollide(pos.x, pos.y, 16, colliderPos.x, colliderPos.y, radius)) {
+      var colliderPos = posMapper[collider];
+      if (doCirclesCollide(pos.x, pos.y, 16, colliderPos.x, colliderPos.y, radius)) {
         handleCollision(e, addScore);
         handleCollision(collider, false);
       }
     });
   }
 
+  bool doCirclesCollide(x1, y1, r1, x2, y2, r2) {
+    var distX = x1 - x2;
+    var distY = y1 - y2;
+    var distForCollision = r1 + r2;
+    var dist = sqrt(distX * distX + distY * distY);
+    return dist < distForCollision;
+  }
+
   void handleCollision(Entity e, bool addScore) {
-    var status = statusMapper.get(e);
+    var status = statusMapper[e];
     status.hp -= 1;
     if (status.hp == 0) {
       e.deleteFromWorld();
@@ -240,19 +248,19 @@ class BulletCollisionSystem extends VoidEntitySystem {
 
 class RepairSystem extends IntervalEntitySystem {
   TagManager tm;
-  ComponentMapper<Status> statusMapper;
+  Mapper<Status> statusMapper;
 
   RepairSystem() : super(5000, Aspect.getEmpty());
 
   initialize() {
     tm = world.getManager(TagManager);
-    statusMapper = new ComponentMapper<Status>(Status, world);
+    statusMapper = new Mapper<Status>(Status, world);
   }
 
   processEntities(_) {
     var player = tm.getEntity(TAG_PLAYER);
     if (null != player) {
-      var status = statusMapper.get(player);
+      var status = statusMapper[player];
       if (status.hp < status.maxHp) {
           status.hp += 1;
       }
